@@ -59,7 +59,14 @@ func (lex *Lexer) NextToken() token.Token {
 	case '-':
 		tok = newToken(token.MINUS, lex.ch)
 	case '!':
-		tok = newToken(token.BANG, lex.ch)
+		if lex.peekChar() == '=' {
+			ch := lex.ch
+			lex.readChar()
+			literal := string(ch) + string(lex.ch)
+			tok = token.Token{Type: token.NOT_EQ, Literal: literal}
+		} else {
+			tok = newToken(token.BANG, lex.ch)
+		}
 	case '/':
 		tok = newToken(token.SLASH, lex.ch)
 	case '*':
