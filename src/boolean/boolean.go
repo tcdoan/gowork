@@ -10,12 +10,10 @@ func main() {
 	const MyLuckyNumber = 6
 	luck := false
 	numBadLucks := 0
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for !luck {
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		x := r.Intn(10)
-
-		fmt.Println(x, x == MyLuckyNumber)
 		if x == MyLuckyNumber {
 			luck = true
 		} else {
