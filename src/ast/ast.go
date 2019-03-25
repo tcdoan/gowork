@@ -40,6 +40,11 @@ type LetStatement struct {
 	Value Expression
 }
 
+func (ls *LetStatement) statementNode() {}
+
+// TokenLiteral ...
+func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
+
 // Identifier ...
 type Identifier struct {
 	Token token.Token // the token.IDENT
