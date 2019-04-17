@@ -38,6 +38,7 @@ func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb
 }
 
 func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
+	fmt.Printf("LongGreet function was invoked")
 	result := ""
 	for {
 		req, err := stream.Recv()
@@ -46,6 +47,28 @@ func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
 			return stream.SendAndClose(resp)
 		}
 		result += "Hello " + req.GetGreeting().GetFirstName() + "! "
+	}
+}
+
+func (*server) GreetEveryone(stream greetpb.GreetService_GreetEveryoneServer) error {
+	fmt.Printf("GreetEveryone function was invoked in bi-directional streaming ")
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			fmt.Printf("Failed to receive: %v \n", err)
+			return err
+		}
+		result := "Hello " + req.GetGreeting().GetFirstName() + "! "
+		sendErr := stream.Send(&greetpb.GreetEveryoneResponse{
+			Result: result,
+		})
+		if sendErr != nil {
+			fmt.Printf("Failed to send : %v \n", sendErr)
+			return sendErr
+		}
 	}
 }
 
