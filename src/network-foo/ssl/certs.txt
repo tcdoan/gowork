@@ -1,0 +1,100 @@
+#!/bin/bash
+# Inspired from: https://github.com/grpc/grpc-java/tree/master/examples#generating-self-signed-certificates-for-use-with-grpc
+
+# Output files
+# ca.key: Certificate Authority private key file (this shouldn't be shared in real-life)
+# ca.crt: Certificate Authority trust certificate (this should be shared with users in real-life)
+# server.key: Server private key, password protected (this shouldn't be shared)
+# server.csr: Server certificate signing request (this should be shared with the CA owner)
+# server.crt: Server certificate signed by the CA (this would be sent back by the CA owner) - keep on server
+# server.pem: Conversion of server.key into a format gRPC likes (this shouldn't be shared)
+
+# Summary 
+# Private files: ca.key, server.key, server.pem, server.crt
+# "Share" files: ca.crt (needed by the client), server.csr (needed by the CA)
+
+# Changes these CN's to match your hosts in your environment if needed.
+SERVER_CN=localhost
+
+
+# Step 1: Generate Certificate Authority + Trust Certificate (ca.crt)
+openssl genrsa -passout pass:1111 -des3 -out ca.key 4096
+openssl req -passin pass:1111 -new -x509 -days 3650 -key ca.key -out ca.crt -subj "/CN=${SERVER_CN}"
+
+
+
+# Step 2: Generate the Server Private Key (server.key)
+openssl genrsa -passout pass:1111 -des3 -out server.key 4096
+
+# Step 3: Get a certificate signing request from the CA (server.csr)
+openssl req -passin pass:1111 -new -key server.key -out server.csr -subj "/CN=${SERVER_CN}"
+
+
+# Step 4: Sign the certificate with the CA we created (it's called self signing) - server.crt
+openssl x509 -req -passin pass:1111 -days 3650 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt 
+
+# Step 5: Convert the server certificate to .pem format (server.pem) - usable by gRPC
+openssl pkcs8 -topk8 -nocrypt -passin pass:1111 -in server.key -out server.pem
+
+# Create a root CA Key (optional, only if not using external CA) 
+# Optionally, you can protect the root CA with a password by
+# adding -aes256 or similar 
+$> openssl genrsa -out ca-key.pem 4096
+
+# Create root cert with the CA key
+$> openssl req -key ca-key.pem -new -x509 -days 7300 -out ca-cert.pem
+
+################ Server Key/Cert (without extensions) ###############
+# Create a server/client 2048-bit RSA private key
+$> openssl genrsa -out localhost-key.pem 2048
+
+# Verify the private key
+$> openssl rsa -check -in localhost-key.pem
+
+# Create a CSR for the new cert
+openssl req -new -key localhost-key.pem -out localhost-csr.pem
+
+# validate the CSR
+$> openssl req -in localhost-csr.pem -noout -text
+
+# Create a signed server cert with CA key good for 365 days
+openssl x509 -req -in localhost-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -days 365 -out localhost-cert.pem
+
+# Or, if no CA is available, simply generate self-sign cert for the server.
+# Generate a self-signed x.509 cert good for 365 days
+# The following creates a CSR and the signed cert in one command
+$> openssl req -key server.key -new -x509 -days 365 -out localhost-cert.pem
+
+# verify the cert
+$> openssl x509 -noout -text -in localhost-cert.pem
+
+# Verify that the private key matches its geneated public certificate
+$> openssl rsa -noout -modulus -in localhost-key.pem | openssl md5
+$> openssl req -noout -modulus -in localhost-csr.pem | openssl md5
+$> openssl x509 -noout -modulus -in localhost-cert.pem | openssl md5
+
+################ Client Key/Cert (without extensions) ###############
+# Use the following to do mutual authentication of the client from server
+
+# Create a client 2048-bit RSA private key
+$> openssl genrsa -out client-key.pem 2048
+
+# Verify the private key
+$> openssl rsa -check -in client-key.pem
+
+# Create a CSR for the new cert
+openssl req -new -key client-key.pem -out client-csr.pem
+
+# validate the CSR
+$> openssl req -in client-csr.pem -noout -text
+
+# Create a signed client cert with CA key good for 365 days
+openssl x509 -req -in client-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -days 365 -out client-cert.pem
+
+# verify the cert
+$> openssl x509 -noout -text -in client-cert.pem
+
+# Verify that the private key matches its geneated public certificate
+$> openssl rsa -noout -modulus -in client-key.pem | openssl md5
+$> openssl req -noout -modulus -in client-csr.pem | openssl md5
+$> openssl x509 -noout -modulus -in client-cert.pem | openssl md5
