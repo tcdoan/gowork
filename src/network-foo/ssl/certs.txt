@@ -36,6 +36,9 @@ openssl x509 -req -passin pass:1111 -days 3650 -in server.csr -CA ca.crt -CAkey 
 # Step 5: Convert the server certificate to .pem format (server.pem) - usable by gRPC
 openssl pkcs8 -topk8 -nocrypt -passin pass:1111 -in server.key -out server.pem
 
+
+################################################################
+
 # Create a root CA Key (optional, only if not using external CA) 
 # Optionally, you can protect the root CA with a password by
 # adding -aes256 or similar 
@@ -46,19 +49,19 @@ $> openssl req -key ca-key.pem -new -x509 -days 7300 -out ca-cert.pem
 
 ################ Server Key/Cert (without extensions) ###############
 # Create a server/client 2048-bit RSA private key
-$> openssl genrsa -out localhost-key.pem 2048
+$> openssl genrsa -out db-win-key.pem 2048
 
 # Verify the private key
-$> openssl rsa -check -in localhost-key.pem
+$> openssl rsa -check -in db-win-key.pem
 
 # Create a CSR for the new cert
-openssl req -new -key localhost-key.pem -out localhost-csr.pem
+openssl req -new -key db-win-key.pem -out db-win-csr.pem
 
 # validate the CSR
-$> openssl req -in localhost-csr.pem -noout -text
+$> openssl req -in db-win-csr.pem -noout -text
 
 # Create a signed server cert with CA key good for 365 days
-openssl x509 -req -in localhost-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -days 365 -out localhost-cert.pem
+openssl x509 -req -in db-win-csr.pem -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -days 365 -out db-win-cert.pem
 
 # Or, if no CA is available, simply generate self-sign cert for the server.
 # Generate a self-signed x.509 cert good for 365 days
